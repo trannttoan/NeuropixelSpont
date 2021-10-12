@@ -432,11 +432,12 @@ end
 #--------------------------------------MAKING PLOTS FOR MANUSCIPTS/PRESENTATIONS--------------------------------------
 #*********************************************************************************************************************
 
-function data_dist3()
+function data_dist2()
     names = ["Krebs", "Waksman", "Robbins"]
-    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 9)
-    nrows = 3
+    
+    nrows = 2
     ncols = length(names)
+    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, nrows*ncols)
     reglbs = load_mouse_data(1, "areaLabels")
 
     for i in 1:ncols
@@ -444,20 +445,20 @@ function data_dist3()
         period = load_mouse_data(i, "tspont")
         regIDs = load_mouse_data(i, "brainLoc", true)
         
-        plot_holder[i] = histogram(sum(spkcounts, dims=2)/(period[end]-period[1]), nbin=0:1:60, title=names[i],
-                                          xaxis=("Spike Count Rate", (0, 60)), yaxis=("Number of neurons", (0, 600)), bottom_margin=5mm)
-
-        plot_holder[i+nrows] = histogram(std(spkcounts, dims=2), nbin=0:0.1:2.5, #title=names[i],
-                                            xaxis=("Standard Deviation", (0, 2.5)), yaxis=("Number of neurons", (0, 500)), bottom_margin=5mm)
-
-        plot_holder[i+nrows*2] = histogram(regIDs, nbin=1:15, #title=names[i],
-                                            xticks=(1:14, reglbs), xrotation=90, xlabel="Brain region", yaxis=("Number of neurons", (0, 2000)), bottom_margin=5mm)
-
+        plot_holder[i] = histogram(sum(spkcounts, dims=2)/(period[end]-period[1]), nbin=0:1:60, title=names[i], 
+                                        xaxis=("Spike-count rate", (0, 60)), ylim=(0, 600), bottom_margin=8mm)
+        if i == 1
+            ylabel!("Number of neurons")
+        end
+        plot_holder[i+ncols] = histogram(regIDs, nbin=1:15, xticks=(1:14, reglbs), xrotation=90, ylim=(0, 2000), bottom_margin=15mm)
+        if i==1
+            ylabel!("Number of neurons")
+        end
     end
 
     plot(plot_holder..., layout=(nrows, ncols), size=(500*ncols, 450*nrows),
-         guidefontsize=10,grid=false, legend=false, left_margin=5mm)
-    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/dist3.png")
+         guidefontsize=10,grid=false, legend=false, left_margin=8mm)
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/dist2.png")
 
 end
 

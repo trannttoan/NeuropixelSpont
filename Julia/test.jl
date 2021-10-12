@@ -1,13 +1,12 @@
 # include("dependencies.jl")
 
-function savePACF(uplim=10)
+function savePACF(uplim)
     names = ["Krebs", "Waksman", "Robbins"]
-    spkcounts = load_mouse_data(i, "stall")
     lags = collect(1:uplim)
-
     pacors = Dict()
 
     for i=1:3
+        spkcounts = load_mouse_data(i, "stall", reduce)
         pacors[names[i]] = StatsBase.pacf(transpose(spkcounts), lags);
     end
 
@@ -230,11 +229,12 @@ function saveClustPerm()
     MAT.matwrite("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Data/save/clustperms.mat", perms)
 end
 
-function clustPACF()
+function clustPACF(reduce)
     names = ["Krebs", "Waksman", "Robbins"]
     root = "C:/Users/trann/Google Drive/Research/NeuropixelSpont/Data"
 
-    infile = matopen(root * "/save/PACFs.mat")
+    fname = reduce ? "/save/PACFs_reduce.mat" : "/save/PACFs.mat"
+    infile = matopen(root * fname)
     plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 6)
 
     for i in 1:3
@@ -257,11 +257,17 @@ end
 function plot_neurons(mouseID, neuronIDs, reduce)
     spkcounts = load_mouse_data(mouseID, "stall", reduce)
     nneurons = length(neuronIDs)
+    
+    if nneurons > 10
+        # shuffle neuron IDs and take the first 10
+        temp = shuffle(neuronIDs)
+        nneurons = 10
+    end
+
     plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, nneurons)
     
-
     for i in 1:nneurons
-        plot_holder[i] = plot(spkcounts[neuronIDs[i], :])
+        plot_holder[i] = plot(spkcounts[neuronIDs[i], :], title=neuronIDs[i])
     end
 
     plot(plot_holder..., layout=(nneurons, 1), size=(2000, 1500), legend=false)
@@ -332,6 +338,7 @@ function inact_percent()
 end
 
 function arorder_dist(maxlag=50)
+    names = ["Krebs", "Waksman", "Robbins"]
     plot_holder = plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 3)
 
     for i in 1:3
@@ -349,10 +356,11 @@ function arorder_dist(maxlag=50)
             orders[j] = temp === nothing ? maxlag : temp-1
         end
 
-        plot_holder[i] = histogram(orders, nbin=0:2:maxlag, xlabel="Lag")
+        plot_holder[i] = histogram(orders, nbin=0:1:maxlag, title=names[i], xlabel="Lag", ylabel="Number of Neurons")
     end
 
     plot(plot_holder..., layout=(1, 3), size=(500*3, 450), legend=false)
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/ARdist.png")
 
 end
 
@@ -363,4 +371,34 @@ function neuron_pacf(mouseID, threshold)
     output = findall(abs.(pacors) .> threshold)
 
     return output
+end
+
+function plot_pacf(mouseID, neuronIDs, maxlag=30)
+    spkcounts = load_mouse_data(mouseID, "stall")
+    N, T = size(spkcounts)
+
+    lags = collect(1:maxlag)
+    ci = 1.96/sqrt(T)
+
+    pacors = StatsBase.pacf(transpose(spkcounts[neuronIDs, :]), lags)
+    println(size(pacors))
+
+    p1 = plot(pacors, label=reshape(neuronIDs, (1, length(neuronIDs))), linealpha=0.5)
+    p1 = hline!([-ci, ci], linestyle=:dash, label=nothing)
+
+    p2 = heatmap(Distances.pairwise(Distances.Cityblock(), pacors, dims=2))
+
+    plot(p1, p2, layout=(1, 2), size=(550*2, 450))
+
+end
+
+
+
+function filter_neuron(mouseID, threshold)
+    spkcounts = load_mouse_data(mouseID, "stall")
+    period = load_mouse_data(mouseID, "tspont")
+
+    frate = vec(sum(spkcounts, dims=2) / (period[end]-period[1]))
+    
+    return findall(frate .>= threshold)
 end
