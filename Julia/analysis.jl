@@ -51,7 +51,6 @@ end
 
 function neuron_sort(regIDs::Array{Float64, 1}, shuffleWithinRegion::Bool=false)
     regSort = sortperm(regIDs)
-    str = shuffleWithinRegion ? "ShuffleInReg" : "ClustByReg"
 
     if shuffleWithinRegion
         regIDs = regIDs[regSort]
@@ -65,13 +64,13 @@ function neuron_sort(regIDs::Array{Float64, 1}, shuffleWithinRegion::Bool=false)
         end
     end
 
-    return (str, regSort)
+    return regSort
 end
 
 function neuron_sort(D::Array{Float64, 2}, link::Symbol)
     result = hclust(D; linkage=link)
 
-    return ("HClustAll", result.order)
+    return result.order
 end
 
 function neuron_sort(regIDs::Array{Float64, 1}, D::Array{Float64, 2}, link::Symbol)
@@ -88,7 +87,7 @@ function neuron_sort(regIDs::Array{Float64, 1}, D::Array{Float64, 2}, link::Symb
         end
     end
 
-    return ("HClustReg", regSort)
+    return regSort
 end
 
 

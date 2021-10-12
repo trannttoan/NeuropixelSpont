@@ -16,7 +16,7 @@ using .Analysis: neuron_sort
 
 Plot histograms of specified data, one for each mouse. Options include :region, :probe, :rate, :count.
 """
-function data_dist(dtname::Symbol)
+function data_dist(dtname::Symbol, save::Bool=false)
     names = ["Krebs", "Waksman", "Robbins"]
     plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 3)
 
@@ -44,10 +44,10 @@ function data_dist(dtname::Symbol)
         for i=1:length(names)
             period = load_mouse_data(i, "tspont")
             spkcounts = load_mouse_data(i, "stall")
-            plot_holder[i] = histogram(sum(spkcounts, dims=2)/(period[end]-period[1]), nbin=0:5:100, title=names[i])
+            plot_holder[i] = histogram(sum(spkcounts, dims=2)/(period[end]-period[1]), nbin=0:1:60, title=names[i])
         end
 
-        plot(plot_holder..., xaxis=("Firing Rate", (0, 100)), yaxis=("Number of neurons", (0, 1200)),
+        plot(plot_holder..., xaxis=("Firing Rate", (0, 60)), yaxis=("Number of neurons", (0, 600)),
              guidefontsize=10, layout=(1, 3), size=(900, 400), grid=false, legend=false, left_margin=2mm, bottom_margin=5mm)
 
     # distribution of number of unique spike count
@@ -58,9 +58,31 @@ function data_dist(dtname::Symbol)
             plot_holder[i] = histogram(unq_spkcounts, nbin=0:2:30, title=names[i])
         end
 
-        plot(plot_holder..., xaxis=("Firing Range", (0, 30)), yaxis=("Number of neurons", (0, 1000)),
+        plot(plot_holder..., xaxis=("Firing Range", (0, 30)), yaxis=("Number of neurons", (0, 600)),
              guidefontsize=10, layout=(1, 3), size=(900, 400), grid=false, legend=false, left_margin=2mm, bottom_margin=5mm)
+    
+    elseif dtname == :fluct
+        for i=1:length(names)
+            spkcounts = load_mouse_data(i, "stall")
+            avgdiff = mean(abs.(spkcounts[:, 2:end] - spkcounts[:, 1:end-1]), dims=2)
+            plot_holder[i] = histogram(avgdiff, nbin=0:0.1:1.5, title=names[i])
+        end
+        
+        plot(plot_holder..., xaxis=("Fluctuation", (0, 2)), yaxis=("Number of neurons", (0, 1000)),
+        guidefontsize=10, layout=(1, 3), size=(900, 400), grid=false, legend=false, left_margin=2mm, bottom_margin=5mm)
+    elseif dtname == :stdv
+        for i=1:length(names)
+            spkcounts = load_mouse_data(i, "stall")
+            stdv = std(spkcounts, dims=2)
+            plot_holder[i] = histogram(stdv, nbin=0:0.1:2.5, title=names[i])
+        end
 
+        plot(plot_holder..., xaxis=("Standard Deviation", (0, 2.5)), yaxis=("Number of neurons", (0, 500)),
+        guidefontsize=10, layout=(1, 3), size=(900, 400), grid=false, legend=false, left_margin=2mm, bottom_margin=5mm)
+    end
+
+    if save
+        savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/$(dtname).png")
     end
 end
 
@@ -211,15 +233,21 @@ function _locate_borders(regIDs)
         pos[i] = pos[i-1] + sum(regIDs .== i)
     end
 
-    pos = pos .+ sum(regIDs .== 0)
-
     return pos
 end
 
-function _heatmap_mod(M, lim, pname, borpos=nothing)
-    p = heatmap(M, clim=lim, title=pname)
+function _heatmap_mod(M, lim, irow, icol, borpos=nothing)
+    row_titles = ["Krebs", "Waksman", "Robbins"]
+    col_titles = ["Pearson's r", "Mutual Info(log)", "Physical Distance"]
 
-    if borpos != nothing
+    l_margin = icol == 1 ? 90mm : 10mm 
+    p = heatmap(M, clim=lim, left_margin=l_margin)
+    
+    if irow==1
+        title!(col_titles[icol])
+    end
+
+    if borpos !== nothing
         p = vline!(borpos, linecolor=:black, legend=false)
         p = hline!(borpos, linecolor=:black, legend=false)
     end
@@ -267,8 +295,9 @@ function neuron_relate(mouseID::Int, sort_name::String, sort_scheme::Array{Int, 
 
     plot(p1_dflt, p2_dflt, p3_dflt, p1_clst, p2_clst, p3_clst,
          layout=(2, 3), size=(1700*3, 1200*2), margin=5mm,
-         titlefontsize=40, ticks=false, yflip=true)
-    savefig("../Plots/M$(mouseID)_mat.png")
+         tickfontsize=40, ticks=false, yflip=true)
+    annotate!(-1.8, 200, text("Before", :left, 10), subplot=6)
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/M$(mouseID)_mat.png")
 end
 
 
@@ -307,7 +336,7 @@ function common_region_PD(maxDim::Int)
             ph = ripserer(D, dim_max=maxDim)
             for k=1:length(ph)
                 if length(ph[k]) > 0
-                    plot_temp = plot!(ph[k], markershape=shapes[k], markercolor=colors[j], label="M$(j)-H$(k-1)", title=reglbs[common_regs[i]])
+                    plot_temp = plot!(ph[k], markershape=shapes[k], markercolor=colors[j], title=reglbs[common_regs[i]])
                 end
             end
         end
@@ -397,6 +426,96 @@ function corWithBehaviors()
 
     plot(plot_holder..., layout=(1, 3), size=(2640, 600), yflip=true, xrotation=90, bottom_margin=21mm)
     savefig("../Plots/corWithBehavior.png")
+end
+
+#*********************************************************************************************************************
+#--------------------------------------MAKING PLOTS FOR MANUSCIPTS/PRESENTATIONS--------------------------------------
+#*********************************************************************************************************************
+
+function data_dist3()
+    names = ["Krebs", "Waksman", "Robbins"]
+    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 9)
+    nrows = 3
+    ncols = length(names)
+    reglbs = load_mouse_data(1, "areaLabels")
+
+    for i in 1:ncols
+        spkcounts = load_mouse_data(i, "stall", true)
+        period = load_mouse_data(i, "tspont")
+        regIDs = load_mouse_data(i, "brainLoc", true)
+        
+        plot_holder[i] = histogram(sum(spkcounts, dims=2)/(period[end]-period[1]), nbin=0:1:60, title=names[i],
+                                          xaxis=("Spike Count Rate", (0, 60)), yaxis=("Number of neurons", (0, 600)), bottom_margin=5mm)
+
+        plot_holder[i+nrows] = histogram(std(spkcounts, dims=2), nbin=0:0.1:2.5, #title=names[i],
+                                            xaxis=("Standard Deviation", (0, 2.5)), yaxis=("Number of neurons", (0, 500)), bottom_margin=5mm)
+
+        plot_holder[i+nrows*2] = histogram(regIDs, nbin=1:15, #title=names[i],
+                                            xticks=(1:14, reglbs), xrotation=90, xlabel="Brain region", yaxis=("Number of neurons", (0, 2000)), bottom_margin=5mm)
+
+    end
+
+    plot(plot_holder..., layout=(nrows, ncols), size=(500*ncols, 450*nrows),
+         guidefontsize=10,grid=false, legend=false, left_margin=5mm)
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/dist3.png")
+
+end
+
+
+"""
+    neuron_relate(mouseID::Int, sortSchemeName::String, sortScheme::Array{Int, 1}, includeBorder::Bool=false, identifyRegion::Bool=false)
+
+Plot matrices of pairwise correlation, mutual information and physical distance. Plots arranged in 2 rows each corresponding to an ordering of neurons.
+In the top row, neurons are grouped by brain region whereas hierarchical clustering is applied to those in the bottom row.
+"""
+function neuron_relate1(sort_name::String="NoSorting"; include_border::Bool=false, identify_region::Bool=false)
+    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 3, 3)
+
+    for mouseID in 1:3
+        # load data
+        regIDs = load_mouse_data(mouseID, "brainLoc", true)
+        coords = load_mouse_data(mouseID, "ccfCoords", true)
+
+        # compute "relation" matrices
+        corM = load_result(mouseID, "cor")
+        logmiM = log.(load_result(mouseID, "minfo"))
+        pdistM = pairwise(Euclidean(), coords, dims=1)
+        regM = _reg_diff(regIDs, identify_region)
+
+        # plot configuration
+        border_pos =  include_border ? _locate_borders(regIDs) : nothing
+        # clr = identify_region ? cgrad(:gist_earth, 15, rev=true, categorical=true) : cgrad(:heat, 2, categorical=true)
+        # clm = identify_region ? (-1, 14) : (0, 1)
+
+        sort_idx = 1:length(regIDs)
+        if  sort_name=="GroupByRegion"
+            sort_idx = neuron_sort(regIDs)
+        elseif sort_name=="HClustAll" || sort_name=="HClustInRegion"
+            D = sqrt.(1 .- corM)            
+            
+            if sort_name=="HClustInRegion"
+                sort_idx = neuron_sort(regIDs, D, :average)
+            else
+                sort_idx = neuron_sort(D, :average)
+            end
+        end
+
+        plot_holder[mouseID*3-2] = _heatmap_mod(corM[sort_idx, sort_idx], (-0.3, 1), mouseID, 1,  border_pos)
+        plot_holder[mouseID*3-1] = _heatmap_mod(logmiM[sort_idx, sort_idx], (-20, 1.1), mouseID, 2, border_pos)
+        plot_holder[mouseID*3]   = _heatmap_mod(pdistM[sort_idx, sort_idx], (0, 6050), mouseID, 3, border_pos)
+    end
+
+
+    plot(plot_holder...,
+         layout=(3, 3), size=(1800*3, 1200*3), yflip=true, ticks=false,
+         top_margin=10mm, bottom_margin=10mm,
+         titlefontsize=45, tickfontsize=35)
+
+    annotate!(-250, 550, text("Krebs", :left, 45), subplot=1)
+    annotate!(-650, 1000, text("Waksman", :left, 45), subplot=4)
+    annotate!(-550, 1000, text("Robbins", :left, 45), subplot=7)
+
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/$sort_name.png")
 end
 
 
