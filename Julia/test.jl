@@ -229,31 +229,6 @@ function saveClustPerm()
     MAT.matwrite("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Data/save/clustperms.mat", perms)
 end
 
-function clustPACF(reduce)
-    names = ["Krebs", "Waksman", "Robbins"]
-    root = "C:/Users/trann/Google Drive/Research/NeuropixelSpont/Data"
-
-    fname = reduce ? "/save/PACFs_reduce.mat" : "/save/PACFs.mat"
-    infile = matopen(root * fname)
-    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 6)
-
-    for i in 1:3
-        pacor = read(infile, names[i])
-        println(size(pacor))
-        # corM = Statistics.cor(pacor, dims=2)
-        # disM = sqrt.(1 .- corM)
-        disM = Distances.pairwise(Distances.CosineDist(), pacor, dims=2)
-        clustres = Clustering.hclust(disM, linkage=:average)
-        plot_holder[i] = heatmap(disM, yflip=true)
-        plot_holder[i+3] = heatmap(disM[clustres.order, clustres.order], yflip=true)
-    end
-    
-    plot(plot_holder..., layout=(2, 3), size=(1700*3, 1200*2))
-    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/pacfclust.png")
-
-    close(infile)
-end
-
 function plot_neurons(mouseID, neuronIDs, reduce)
     spkcounts = load_mouse_data(mouseID, "stall", reduce)
     nneurons = length(neuronIDs)
@@ -401,4 +376,26 @@ function filter_neuron(mouseID, threshold)
     frate = vec(sum(spkcounts, dims=2) / (period[end]-period[1]))
     
     return findall(frate .>= threshold)
+end
+
+function clustPACF(metric, reduce)
+    names = ["Krebs", "Waksman", "Robbins"]
+    root = "C:/Users/trann/Google Drive/Research/NeuropixelSpont/Data"
+
+    infile = matopen(root * "/save/PACFs.mat")
+    plot_holder = Array{Plots.Plot{Plots.GRBackend}}(undef, 6)
+
+    for i in 1:3
+        pacor = read(infile, names[i])
+        neuronIDs = filter_neuron(i, 1)
+        disM = Distances.pairwise(metric, view(pacor, :, neuronIDs) , dims=2)
+        clustres = Clustering.hclust(disM, linkage=:average)
+        plot_holder[i] = heatmap(disM, yflip=true)
+        plot_holder[i+3] = heatmap(disM[clustres.order, clustres.order], yflip=true)
+    end
+    
+    plot(plot_holder..., layout=(2, 3), size=(1700*3, 1200*2))
+    savefig("C:/Users/trann/Google Drive/Research/NeuropixelSpont/Plots/pacfclust.png")
+
+    close(infile)
 end
