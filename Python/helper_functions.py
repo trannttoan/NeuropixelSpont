@@ -2,6 +2,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat, savemat
 from scipy.interpolate import interp1d
+from dependencies import root
+
+
+def plot_config():
+    plt.style.use("seaborn-paper")
+    plt.rcParams.update({
+        "axes.labelsize": 17,
+        "axes.titlesize": 17,
+        "legend.title_fontsize": 16,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14,
+        "lines.linewidth": 1.8,
+        "lines.markersize": 6,
+        "axes.linewidth": 1
+    })
 
 def generate_colors():
     kelly_colors = dict(vivid_yellow=(255, 179, 0),
@@ -52,7 +67,7 @@ def load_data(names=["Krebs", "Waksman", "Robbins"]):
 
     for i in range(len(names)): 
         # spike times
-        st = loadmat(f"../../../Data/source/ephys_{names[i]}.mat")
+        st = loadmat(f"{root}/Data/source/ephys_{names[i]}.mat")
         st["reglbs"] = list(map(np.ndarray.item, st["reglbs"].flatten()))
         stkeys = ["regIDs", "probeIDs", "heights", "tpoints"]
         for k in stkeys:
@@ -60,7 +75,7 @@ def load_data(names=["Krebs", "Waksman", "Robbins"]):
         ephys.append(st)
 
         # video/behavioral data
-        beh = loadmat(f"../../../Data/source/FrameDiff_{names[i]}.mat")
+        beh = loadmat(f"{root}/Data/source/FrameDiff_{names[i]}.mat")
         behkeys = ["frame_diff", "lomot_cont", "whisk_cont", "lomot_disc", "whisk_disc", "time_pts"]
         for k in behkeys:
             beh[k] = beh[k].flatten()
