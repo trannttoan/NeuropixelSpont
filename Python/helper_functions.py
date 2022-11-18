@@ -20,8 +20,6 @@ from scipy.stats import norm
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 
-from umap import UMAP, AlignedUMAP
-
 
 
 def plot_config():
@@ -100,7 +98,6 @@ def load_data(names=["Krebs", "Waksman", "Robbins"]):
             beh[k] = beh[k].flatten()
         behav.append(beh)
 
-    
     return ephys, behav, names
 
 def label_tpoints(
@@ -132,50 +129,3 @@ def label_tpoints(
         T_lomot_only = np.zeros(T_both.size).astype(bool)  
     
     return T_neither, T_whisk_only, T_lomot_only, T_both
-
-
-
-
-# UMAP
-def create_umap_embeddings(
-    ephys_data,    
-    names,
-    align=False,
-    dstr="correlation",
-    n_neighbors_vals = np.round(np.logspace(np.log10(5), np.log10(500), 10) / 5).astype(int) * 5
-):
-
-    
-    n_sets = len(n_neighbors_vals)
-    seed = np.random.randint(1000)
-    embed_dict = dict()
-    embed_dict["n_neighbors"] = n_neighbors_vals
-    embed_dict["seed"] = seed
-    
-    txt = "align" if align else "seed"
-    
-    for imouse in range(len(names)):
-        spkmat = ephys_data[imouse]["spkmat"]
-        n_neurons, n_tpoints = spkmat.shape 
-
-        if align:
-            idx_map = {i:i for i in range(n_neurons)}
-            constant_relations = [idx_map for i in range(n_sets-1)]
-
-            mappers = AlignedUMAP(
-                n_neighbors=n_neighbors_vals,
-                metric=dstr,
-                alignment_regularisation=1e-3,
-                random_state=seed
-            ).fit(
-                [spkmat for i in range(n_sets)],
-                relations=constant_relations
-            )
-            embed_dict[names[imouse]] = [emb for emb in mappers.embeddings_]
-        else:
-            embed_dict[names[imouse]] = [UMAP(n_neighbors=nn,
-                                              metric=dstr,
-                                              random_state=seed
-                                             ).fit_transform(spkmat) for nn in n_neighbors_vals] 
-        
-    savemat(f"{root}/Data/save/umap_time_reduced_{txt}.mat", embed_dict)
