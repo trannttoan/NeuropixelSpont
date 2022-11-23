@@ -2,63 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
-from sklearn.metrics import rand_score, adjusted_rand_score
-from scipy.io import loadmat, savemat
+from scipy.io import loadmat
 from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import average, single, cut_tree, dendrogram
+from scipy.cluster.hierarchy import average, dendrogram
+
 from matplotlib.lines import Line2D
 
-from helper_functions import load_data, label_tpoints, generate_colors, plot_config
+from helper_functions import label_tpoints
 from dependencies import root
 
-def compute_ari_vs_behavior(
-    ephys_data,
-    behav_data,
-    names,
-    n_cluster_vals=np.arange(2, 13)
-):
-    
-    rand_dict = dict()
-    rand_dict["beh_states"] = ["Neither", "Whisking only", "Both"]
-    rand_dict["n_cluster_vals"] = n_cluster_vals
 
-    for imouse in range(3):
-        spkmat = ephys_data[imouse]["spkmat"]
-        regIDs = ephys_data[imouse]["regIDs"]
-        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
-        T_splits = [T_neither, T_whisk_only, T_both]
-        rand_scores = np.zeros((len(T_splits), n_cluster_vals.size))
-
-        for ibeh, T in enumerate(T_splits):
-            D = squareform(pdist(spkmat[:, T], metric="correlation"))
-            Z = average(squareform(D))
-            rand_scores[ibeh, :] = np.array([rand_score(regIDs, cut_tree(Z, n_clusters=n_clusters).flatten()) for n_clusters in n_cluster_vals])
-        rand_dict[names[imouse]] = rand_scores
-
-    savemat(f"{root}/Data/save/rand_index.mat", mdict=rand_dict)
-
-
-def plot_ari_vs_behavior(
-    micecols=None,
-    save_plot=False
-):
-
-    rand_dict = loadmat(f"{root}/Data/save/rand_index.mat")
-    n_cluster_vals = rand_dict["n_cluster_vals"].flatten()
-    nrows, ncols = len(names), len(rand_dict["beh_states"])
-    fig, axs = plt.subplots(nrows, ncols, figsize=(15, 9))
-
-    for imouse, row in enumerate(axs):
-        rand_scores = rand_dict[names[imouse]]
-        for ax, rands in zip(row, rand_scores):
-            ax.plot(n_cluster_vals, rands)
-            ax.set_xticks(np.arange(2, 13, 2))
-            ax.set_ylim((0, 0.65))
-
-    if save_plot:
-        plt.savefig(f"{root}/Plots/rand_index.png", bbox_inches="tight")
-
-    
 def plot_hclust_vs_behavior(
     ephys_data,
     behav_data,
@@ -181,11 +134,3 @@ def plot_hclust_vs_behavior(
     if save_plot:
         plt.savefig(f"{root}/Plots/hclust_wrt_behaviors_{names[mouseID]}.png", dpi=dpi, bbox_inches="tight")
 
-ephys_data, behav_data, names = load_data()
-mice_colors, region_colors, behav_colors = generate_colors()
-plot_config()
-# compute_ari_vs_behavior(ephys_data, behav_data, names)
-plot_ari_vs_behavior(micecols=mice_colors, save_plot=True)
-
-# for imouse in range(3):
-#     plot_hclust_vs_behavior(ephys_data, behav_data, names, mouseID=imouse, colors=region_colors, dpi=1000, save_plot=True)

@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 from scipy.io import loadmat, savemat
 from scipy.spatial.distance import pdist, squareform
 from sklearn.metrics import silhouette_samples
-from matplotlib.lines import Line2D
 from matplotlib.gridspec import GridSpecFromSubplotSpec
+from matplotlib.lines import Line2D
 
 from helper_functions import label_tpoints
 from dependencies import root
+
 
 
 def compute_silhouette_vs_behavior(
@@ -164,6 +165,50 @@ def plot_silhouette_vs_behavior(
     if save_plot:
         plt.savefig(f"{root}/Plots/silhouette_{names[mouseID]}.png", bbox_inches="tight")
 
+
+def plot_silhouette_vs_nneighbors(
+    ephys_data,
+    names,
+    mice_colors,
+    save_plot=False
+):
+
+    embed_dict = loadmat(f"{root}/Data/save/umap_embeddings.mat")
+    embed_dim = embed_dict["embed_dim"].item()
+    n_neighbor_vals = embed_dict["n_neighbor_vals"].flatten()
+
+    fig, ax = plt.subplots(figsize=(15, 5))
+
+    for name, ephys, color in zip(names, ephys_data, mice_colors):
+        regIDs = ephys["regIDs"]
+        embed_imouse = embed_dict[name]
+        
+        sil_mean_stds = np.zeros(n_neighbor_vals.size)
+        for inn, embed_nn in enumerate(embed_imouse):
+            sil_samples = np.array([
+                silhouette_samples(
+                    X=embed_nn[:, i*embed_dim:(i+1)*embed_dim],
+                    labels=regIDs,
+                    metric="euclidean"
+                    )
+                for i in range(n_neighbor_vals.size)])
+
+            sil_mean_stds[inn] = sil_samples.std(axis=0).mean()
+
+        ax.plot(n_neighbor_vals, sil_mean_stds, color=color, label=name)
+
+    ax.set_ylim((0, 0.15))
+    ax.set_yticks(np.arange(0, 0.16, 0.05))
+    ax.set_ylabel(r"$E[\sigma_{s(i)}]$")
+    ax.set_xlabel("Number of nearest neighbors")
+    ax.legend(
+        loc="upper right",
+        prop=dict(size=15),
+        framealpha=0
+    )
+
+    if save_plot:
+        plt.savefig(f"{root}/Plots/silhouette_vs_nn.png", bbox_inches="tight")
 
 
 def plot_silhouette_by_region(

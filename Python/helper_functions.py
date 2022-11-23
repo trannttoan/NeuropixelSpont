@@ -4,28 +4,13 @@ import matplotlib.pyplot as plt
 from scipy.io import loadmat, savemat
 from dependencies import root
 
-from sklearn.decomposition import PCA
-from sklearn.manifold import Isomap
-from sklearn.cluster import AgglomerativeClustering, DBSCAN, KMeans
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.neighbors import kneighbors_graph
-from sklearn.model_selection import KFold
-from sklearn import svm
-from sklearn.metrics import accuracy_score, f1_score
-
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import average, dendrogram, cophenet
-from scipy.ndimage import gaussian_filter1d
-from scipy.stats import norm
-from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-
 
 
 def plot_config():
     plt.style.use("seaborn-paper")
     plt.rcParams.update({
-        "axes.labelsize": 17,
+        "axes.labelsize": 16,
         "axes.titlesize": 17,
         "legend.title_fontsize": 16,
         "xtick.labelsize": 14,

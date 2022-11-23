@@ -118,4 +118,5 @@ cython_debug/
 
 # specific files
 dependencies.py
+main.py
 test.ipynb

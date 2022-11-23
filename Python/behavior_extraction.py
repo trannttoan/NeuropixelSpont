@@ -6,7 +6,7 @@ from matplotlib.gridspec import GridSpecFromSubplotSpec
 from dependencies import root
 
 def plot_behav_labels(
-    behave_data,
+    behav_data,
     mouseID=0,
     colors=None,
     tstart=0,
@@ -123,9 +123,3 @@ def plot_behav_labels(
     
     if save_plot:
         plt.savefig(f"{root}/Plots/behavior_{tstart}-{tstart+duration}.png", bbox_inches="tight")
-
-
-ephys_data, behav_data, names = load_data()
-mice_colors, region_colors, behav_colors = generate_colors()
-plot_config()
-plot_behav_labels(behav_data, colors=behav_colors, tstart=200, duration=60, tstep=20, save_plot=True)
