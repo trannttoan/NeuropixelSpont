@@ -241,6 +241,7 @@ def plot_neurons_wrt_region(
 
 
 def plot_time_wrt_behavior(
+    ephys_data,
     behav_data,
     names,
     colors,
@@ -253,11 +254,11 @@ def plot_time_wrt_behavior(
     fig.subplots_adjust(wspace=0.4)
     
     for imouse, ax in enumerate(axs):
-        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(behav_data, imouse, adjust=adjust)
+        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, imouse, adjust=adjust)
         
         cnts = np.array([T_neither.sum(), T_whisk_only.sum(), T_lomot_only.sum(), T_both.sum()])
         n_tpts = cnts.sum()
-        behs = ["No whisking or locomotion", "Whisking only", "Locomotion only", "Both whisking and locomotion"]
+        behs = ["No whisking or running", "Whisking only", "Locomotion only", "Both whisking and running"]
         lbs = [f"{(cnts[i]/n_tpts)*100:.2f}%" for i in range(len(behs))]
         exp = [0, 0, 0.1, 0]
         

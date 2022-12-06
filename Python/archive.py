@@ -105,3 +105,4 @@ def plot_ari_vs_behavior(
 
     if save_plot:
         plt.savefig(f"{root}/Plots/rand_index.png", bbox_inches="tight")
+

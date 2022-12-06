@@ -4,7 +4,7 @@ import h5py
 
 from scipy.io import loadmat
 from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import average, dendrogram
+from scipy.cluster.hierarchy import linkage, dendrogram, cophenet
 
 from matplotlib.lines import Line2D
 
@@ -67,7 +67,7 @@ def plot_hclust_vs_behavior(
     for i in range(len(beh_lbs)):
         # correlation
         D = squareform(pdist(spkmat[:, T_splits[i]], metric="correlation"))
-        Z = average(squareform(D))
+        Z = linkage(squareform(D), method="average")
         dn = dendrogram(Z, no_plot=True)
         sort_ids = dn["leaves"]
         cor_mat = 1 - D
@@ -134,3 +134,55 @@ def plot_hclust_vs_behavior(
     if save_plot:
         plt.savefig(f"{root}/Plots/hclust_wrt_behaviors_{names[mouseID]}.png", dpi=dpi, bbox_inches="tight")
 
+        
+
+
+def plot_cophenetic_vs_behavior(
+    ephys_data,
+    behav_data,
+    names,
+    methods=["single", "complete", "average"],
+    plot_width=3,
+    plot_height=4,
+    save_plot=False
+):
+    
+    fig, axs = plt.subplots(1, len(names), figsize=(len(names)*plot_width, plot_height))
+    beh_lbs = ["Neither", "Whisking Only", "Both"]
+    colors = [plt.cm.Accent(v) for v in np.linspace(0, 1, len(methods))]
+    xtks = list(range(len(beh_lbs)))
+    ytks = np.round(np.arange(0, 0.81, 0.2), 1)
+    
+    for imouse, ax in enumerate(axs):
+        spkmat = ephys_data[imouse]["spkmat"]
+        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
+        T_masks = [T_neither, T_whisk_only, T_both]
+        cophenet_coeffs = []
+
+        for T in T_masks:
+            Y = pdist(spkmat[:, T], metric="correlation")
+            cophenet_coeffs.append([cophenet(linkage(Y, method=m), Y)[0] for m in methods])
+
+        ax.set_prop_cycle(color=colors)
+        ax.plot(cophenet_coeffs, label=methods)
+        ax.set_xticks(xtks)
+        ax.set_xticklabels(beh_lbs)
+        ax.set_ylim((0, 0.8))
+        ax.set_yticks(ytks)
+        ax.set_yticklabels(ytks if imouse==0 else [])
+        ax.set_title(names[imouse])
+
+        if imouse == 0:
+            ax.set_ylabel("Cophenetic Correltion")
+
+
+    ax.legend(
+        prop=dict(size=14),
+        framealpha=0,
+        labelspacing=0.15,
+        bbox_to_anchor=(0, 0),
+        loc="lower left"
+    )
+
+    if save_plot:
+        plt.savefig(f"{root}/Plots/cophenetic_vs_behavior.png", bbox_inches="tight")

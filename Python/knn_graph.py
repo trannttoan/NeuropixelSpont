@@ -51,27 +51,31 @@ def plot_modularity_vs_knn(
     behav_colors,
     names,
     nn_vals,
+    plot_width=3,
+    plot_height=4,
     save_plot=False
 ):
     
     nn_ids_dict = loadmat(f"{root}/Data/save/nearest_neighbors_sort_indices.mat")
     beh_lbs = ["Neither", "Whisking Only", "Both"]
     colors = [behav_colors[0], behav_colors[1], behav_colors[3]]
-    
+    ytks = np.round(np.arange(0, 0.61, 0.2), 1)
+
     n_mice = len(names)
-    fig, axs = plt.subplots(1, n_mice, figsize=(15, 8))
-    # fig.subplots_adjust(hspace=0.4)
+    fig, axs = plt.subplots(1, n_mice, figsize=(n_mice*plot_width, plot_height))
+    fig.subplots_adjust(wspace=0.1)
     
-    
-    for name, ax, dat in zip(names, axs, ephys_data):
-        regIDs = dat["regIDs"]
+    for imouse, name, ax, ephys in zip(range(n_mice), names, axs, ephys_data):
+        regIDs = ephys["regIDs"]
         communities = [set(np.argwhere(regIDs==rid).flatten()) for rid in np.unique(regIDs)]
         nn_ids_imouse = nn_ids_dict[name]
 
         for nn_ids, clr, lb in zip(nn_ids_imouse, colors, beh_lbs):
             modularities = [modularity(nx.from_numpy_array(create_knn_graph(sort_ids=nn_ids, n_neighbors=nn)), communities) for nn in nn_vals]
             ax.plot(nn_vals, modularities, color=clr, label=lb)
-        ax.set_ylim((0, 0.75))
+        ax.set_ylim((0, 0.6))
+        ax.set_yticks(ytks)
+        ax.set_yticklabels(ytks if imouse==0 else [])
         ax.set_title(name)
 
         ax.set_xscale("log")
@@ -84,4 +88,25 @@ def plot_modularity_vs_knn(
     )
             
     if save_plot:
-        plt.savefig("../../../Plots/modularity.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/modularity.png", bbox_inches="tight")
+
+
+def compute_mean_correlations(
+    ephys_data,
+    behav_data,
+    names,
+    save_plot=False
+):
+
+    for imouse in range(len(names)):
+        spkmat = ephys_data[imouse]["spkmat"]
+        regIDs = ephys_data[imouse]["regIDs"][:, np.newaxis]
+        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
+        
+        print(names[imouse].upper())
+        diff_region = squareform((regIDs - regIDs.T) > 0)
+        print(diff_region.dtype)
+        for T in [T_neither, T_whisk_only, T_both]:
+            cormat = 1 - pdist(spkmat[:, T], metric="correlation")
+            print(f"Intra:{cormat[diff_region].mean():.4f}, Inter:{cormat[1-diff_region].mean():.4f}")
+

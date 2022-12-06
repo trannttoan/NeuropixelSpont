@@ -50,7 +50,7 @@ def plot_umap_vs_nneighbors(
     embed_dim = embed_dict["embed_dim"].item()
     n_neighbor_vals = embed_dict["n_neighbor_vals"].flatten()
     reglbs = ephys_data[0]["reglbs"]
-    i_emb = 1
+    i_emb = 0
     
 
     nrows, ncols = len(names), n_plots

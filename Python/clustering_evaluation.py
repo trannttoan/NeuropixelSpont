@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.io import loadmat, savemat
 from scipy.spatial.distance import pdist, squareform
 from sklearn.metrics import silhouette_samples
+from statsmodels.distributions.empirical_distribution import ECDF
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from matplotlib.lines import Line2D
 
@@ -20,7 +21,7 @@ def compute_silhouette_vs_behavior(
     
     sils = dict()
     sils["beh_states"] = ["Neither", "Whisking only", "Both"]
-    for imouse in range(3):
+    for imouse in range(len(names)):
         spkmat = ephys_data[imouse]["spkmat"]
         regIDs = ephys_data[imouse]["regIDs"]
         T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(behav_data=behav_data, mouseID=imouse)
@@ -385,3 +386,62 @@ def plot_silhouette_by_mouse(
         plt.savefig(f"{root}/Plots/silhouette_by_mouse.png", bbox_inches="tight")
 
     
+
+def silhouette_kstest(
+    ephys_data,
+    behav_data,
+    names,
+    behav_colors,
+    behav_indices=[[0, 1], [0, 2]],
+    plot_width=3,
+    plot_height=4,
+    save_plot=False
+):
+    nrows, ncols = len(names), len(behav_indices)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*plot_width, nrows*plot_height))
+    fig.subplots_adjust(wspace=0.1, hspace=0.2)
+    colors = [behav_colors[0], behav_colors[1], behav_colors[3]]
+    behlbs = ["Neither", "Whisking\nOnly", "Both"]
+    xtks = np.round(np.arange(-0.2, 0.21, 0.1), 1)
+    ytks = np.arange(0, 1.1, 0.25)
+
+    x = np.arange(-0.2, 0.21, 0.005)
+    pad = 1
+
+    for irow, row in enumerate(axs):
+        spkmat = ephys_data[irow]["spkmat"]
+        regIDs = ephys_data[irow]["regIDs"]
+        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=irow)
+        ecdfs = [ECDF(silhouette_samples(spkmat[:, T], regIDs, metric="correlation"))(x) for T in [T_neither, T_whisk_only, T_both]]
+
+        for icol, indice_pair, ax in zip(range(2), behav_indices, row):
+            for idx in indice_pair:
+                ax.plot(x, ecdfs[idx], c=colors[idx], label=behlbs[idx])
+
+            y1, y2 = ecdfs[indice_pair[0]], ecdfs[indice_pair[1]]
+            ecdf_diffs = np.abs(y1 - y2)
+            stat_idx = np.argmax(ecdf_diffs)
+            ax.fill_between(x[stat_idx-pad:stat_idx+pad], y1[stat_idx-pad:stat_idx+pad], y2[stat_idx-pad:stat_idx+pad], color="black")
+            ax.set_title(f"statistics={ecdf_diffs[stat_idx]:.4f}")
+            ax.set_xticks(xtks)
+            ax.set_xticklabels(xtks if irow==nrows-1 else [])
+            ax.set_yticks(ytks)
+            ax.set_yticklabels(ytks if icol==0 else [])
+            
+            if irow == nrows-1:
+                ax.set_xlabel("Silhouette")
+                ax.legend(
+                    loc="lower right",
+                    prop=dict(size=13),
+                    framealpha=0
+                )
+            if icol == 0:
+                ax.set_ylabel("Probability")
+
+    text_ys = [0.75, 0.5, 0.25]
+    for y, name in zip(text_ys, names):
+        fig.text(0.98, y, name, fontdict=dict(ha="center"), fontsize=17)
+
+                
+    if save_plot:
+        plt.savefig(f"{root}/Plots/silhouette_kstest.png", bbox_inches="tight")
