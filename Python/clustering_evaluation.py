@@ -393,8 +393,8 @@ def silhouette_kstest(
     names,
     behav_colors,
     behav_indices=[[0, 1], [0, 2]],
-    plot_width=3,
-    plot_height=4,
+    plot_width=4,
+    plot_height=5,
     save_plot=False
 ):
     nrows, ncols = len(names), len(behav_indices)
@@ -444,4 +444,4 @@ def silhouette_kstest(
 
                 
     if save_plot:
-        plt.savefig(f"{root}/Plots/silhouette_kstest.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/silhouette_kstest.png", bbox_inches="tight", transparent=True)

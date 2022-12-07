@@ -142,8 +142,8 @@ def plot_cophenetic_vs_behavior(
     behav_data,
     names,
     methods=["single", "complete", "average"],
-    plot_width=3,
-    plot_height=4,
+    plot_width=4,
+    plot_height=5,
     save_plot=False
 ):
     
@@ -185,4 +185,4 @@ def plot_cophenetic_vs_behavior(
     )
 
     if save_plot:
-        plt.savefig(f"{root}/Plots/cophenetic_vs_behavior.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/cophenetic_vs_behavior.png", bbox_inches="tight", transparent=True)

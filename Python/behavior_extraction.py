@@ -115,11 +115,11 @@ def plot_behav_labels(
 
     for T_label, clr in zip([T_neither, T_whisk_only, T_lomot_only, T_both], colors):
         ax.fill_between(T, 0, 1, where=T_label>0, color=clr, transform=ax.get_xaxis_transform())
-        ax.margins(x=0)
-        ax.get_yaxis().set_visible(False)
-        ax.set_xlabel("Time(s)", fontsize=16)
-        ax.set_xticks(np.arange(0, duration+1, tstep))
-        ax.tick_params(labelsize=15)
+    ax.margins(x=0)
+    ax.get_yaxis().set_visible(False)
+    ax.set_xlabel("Time(s)", fontsize=16)
+    ax.set_xticks(np.arange(0, duration+1, tstep))
+    ax.tick_params(labelsize=15)
     
     if save_plot:
         plt.savefig(f"{root}/Plots/behavior_{tstart}-{tstart+duration}.png", bbox_inches="tight")

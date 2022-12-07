@@ -51,8 +51,8 @@ def plot_modularity_vs_knn(
     behav_colors,
     names,
     nn_vals,
-    plot_width=3,
-    plot_height=4,
+    plot_width=4,
+    plot_height=5,
     save_plot=False
 ):
     
@@ -88,7 +88,7 @@ def plot_modularity_vs_knn(
     )
             
     if save_plot:
-        plt.savefig(f"{root}/Plots/modularity.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/modularity.png", bbox_inches="tight", transparent=True)
 
 
 def compute_mean_correlations(

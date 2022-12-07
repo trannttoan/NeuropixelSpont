@@ -170,7 +170,7 @@ def plot_raster(
 
 
 
-def plot_neuron_dist_wrt_region(
+def plot_region_sample_size_pie(
     ephys_data,
     names,
     psz=6,
@@ -206,7 +206,7 @@ def plot_neuron_dist_wrt_region(
         plt.savefig(f"{root}/Plots/regions.png", bbox_inches="tight")
 
 
-def plot_neurons_wrt_region(
+def plot_region_sample_size_bar(
     ephys_data,
     names,
     psz=8,
@@ -237,7 +237,7 @@ def plot_neurons_wrt_region(
             ax.set_ylabel("Number of neurons", fontsize=18)
 
     if save_plot:
-        plt.savefig(f"{root}/Plots/regions_bar.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/regions_bar.png", bbox_inches="tight", transparent=True)
 
 
 def plot_time_wrt_behavior(
@@ -292,4 +292,4 @@ def plot_time_wrt_behavior(
     )
         
     if save_plot:
-        plt.savefig(f"{root}/Plots/beh_percent.png", bbox_inches="tight")
+        plt.savefig(f"{root}/Plots/beh_percent.png", bbox_inches="tight", transparent=True)
