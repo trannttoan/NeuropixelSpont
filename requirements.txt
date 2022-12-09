@@ -1,0 +1,7 @@
+numpy
+matplotlib
+sklearn
+scipy
+networkx
+h5py
+umap-learn

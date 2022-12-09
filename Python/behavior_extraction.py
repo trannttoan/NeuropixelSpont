@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
-from helper_functions import load_data, generate_colors, plot_config
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from dependencies import root
 
