@@ -5,7 +5,8 @@ from scipy.io import loadmat
 from matplotlib.lines import Line2D
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 
-from helper_functions import load_data, label_tpoints
+from behavior_extraction import label_tpoints
+from helper_functions import load_data
 from dependencies import root
 
 

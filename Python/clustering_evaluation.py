@@ -8,7 +8,7 @@ from statsmodels.distributions.empirical_distribution import ECDF
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from matplotlib.lines import Line2D
 
-from helper_functions import label_tpoints
+from behavior_extraction import label_tpoints
 from dependencies import root
 
 

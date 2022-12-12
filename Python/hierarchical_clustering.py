@@ -8,7 +8,7 @@ from scipy.cluster.hierarchy import linkage, dendrogram, cophenet
 
 from matplotlib.lines import Line2D
 
-from helper_functions import label_tpoints
+from behavior_extraction import label_tpoints
 from dependencies import root
 
 
@@ -92,7 +92,7 @@ def plot_hclust_vs_behavior(
             j += 1
 
         
-        # regions
+        # brain regions
         ax = axs[3, i]
         regIDs_sorted = regIDs[sort_ids]
         for ireg in np.unique(regIDs):

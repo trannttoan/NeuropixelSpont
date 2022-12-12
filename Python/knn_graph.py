@@ -6,7 +6,7 @@ from scipy.io import loadmat, savemat
 from scipy.spatial.distance import pdist, squareform
 from networkx.algorithms.community import modularity
 
-from helper_functions import label_tpoints
+from behavior_extraction import label_tpoints
 from dependencies import root
 
 

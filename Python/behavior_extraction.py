@@ -1,8 +1,43 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 from scipy.io import loadmat
+from scipy.interpolate import interp1d
+
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from dependencies import root
+
+
+def label_tpoints(
+    ephys_data,
+    behav_data,
+    mouseID=0,
+    adjust=True
+):
+    
+    lomot_disc_raw = behav_data[mouseID]["lomot_disc"]
+    whisk_disc_raw = behav_data[mouseID]["whisk_disc"]
+
+    video_times = behav_data[mouseID]["time_pts"]
+    ephys_times = ephys_data[mouseID]["tpoints"]
+
+    f = interp1d(video_times, lomot_disc_raw, kind="nearest")
+    lomot_disc = f(ephys_times)
+    f = interp1d(video_times, whisk_disc_raw, kind="nearest")
+    whisk_disc = f(ephys_times)
+
+    T_both = (lomot_disc * whisk_disc) == 1
+    T_neither = (lomot_disc + whisk_disc) == 0
+    T_lomot_only = (lomot_disc - whisk_disc) == 1
+    T_whisk_only = (whisk_disc - lomot_disc) == 1
+    
+    
+    if adjust:
+        T_both = T_both + T_lomot_only
+        T_lomot_only = np.zeros(T_both.size).astype(bool)  
+    
+    return T_neither, T_whisk_only, T_lomot_only, T_both
+
 
 def plot_behav_labels(
     behav_data,

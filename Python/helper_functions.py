@@ -1,10 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy.io import loadmat, savemat
+from scipy.io import loadmat
 from dependencies import root
-
-from scipy.interpolate import interp1d
 
 
 def plot_config():
@@ -77,40 +75,10 @@ def load_data(names=["Krebs", "Waksman", "Robbins"]):
         ephys.append(st)
 
         # video/behavioral data
-        beh = loadmat(f"{root}/Data/source/FrameDiff_{names[i]}.mat")
+        beh = loadmat(f"{root}/Data/source/behav_{names[i]}.mat")
         behkeys = ["frame_diff", "lomot_cont", "whisk_cont", "lomot_disc", "whisk_disc", "time_pts"]
         for k in behkeys:
             beh[k] = beh[k].flatten()
         behav.append(beh)
 
     return ephys, behav, names
-
-def label_tpoints(
-    ephys_data,
-    behav_data,
-    mouseID=0,
-    adjust=True
-):
-    
-    lomot_disc_raw = behav_data[mouseID]["lomot_disc"]
-    whisk_disc_raw = behav_data[mouseID]["whisk_disc"]
-
-    video_times = behav_data[mouseID]["time_pts"]
-    ephys_times = ephys_data[mouseID]["tpoints"]
-
-    f = interp1d(video_times, lomot_disc_raw, kind="nearest")
-    lomot_disc = f(ephys_times)
-    f = interp1d(video_times, whisk_disc_raw, kind="nearest")
-    whisk_disc = f(ephys_times)
-
-    T_both = (lomot_disc * whisk_disc) == 1
-    T_neither = (lomot_disc + whisk_disc) == 0
-    T_lomot_only = (lomot_disc - whisk_disc) == 1
-    T_whisk_only = (whisk_disc - lomot_disc) == 1
-    
-    
-    if adjust:
-        T_both = T_both + T_lomot_only
-        T_lomot_only = np.zeros(T_both.size).astype(bool)  
-    
-    return T_neither, T_whisk_only, T_lomot_only, T_both
