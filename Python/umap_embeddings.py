@@ -17,8 +17,30 @@ def create_umap_vs_nneighbors(
     metric="correlation",
     n_reps=10,
     embed_dim=2,
-    n_neighbors_vals=np.round(np.logspace(np.log10(5), np.log10(500), 10) / 5).astype(int) * 5
+    n_neighbors_vals=np.round(np.logspace(np.log10(5), np.log10(500), 10) / 5).astype(int) * 5,
+    path=''
 ):
+    """
+
+
+    Parameters
+    ----------
+    ephys_data : list
+        Dictionaries containing the processed neural activity and neuron locations
+    names : list 
+        Names of mice
+    metric : str
+        Distance measure
+    n_reps : int
+        Number of embeddings to generate for each set of parameters
+    embed_dim : int
+        Embedding dimension
+    n_neighbor_vals : array-like
+        Array of values of number of nearest neighbors
+    path : str
+        Path to where the results are saved
+
+    """
 
     embed_dict = dict()
     embed_dict["n_neighbor_vals"] = n_neighbors_vals
@@ -35,7 +57,10 @@ def create_umap_vs_nneighbors(
 
         embed_dict[names[imouse]] = embeddings
         print()
-    savemat(f"{root}/Data/save/umap_embeddings.mat", mdict=embed_dict)
+
+    if path == '':
+        path = f"{root}/Data/save/umap_embeddings.mat"
+    savemat(path, mdict=embed_dict)
 
 
 def plot_umap_vs_nneighbors(
@@ -43,20 +68,46 @@ def plot_umap_vs_nneighbors(
     names,
     region_colors,
     n_plots=5,
-    plot_size=4,
-    save_plot=False
+    plot_width=4,
+    plot_height=4,
+    path=''
 ):
+    """
+
+
+    Parameters
+    ----------
+    ephys_data : list
+        Dictionaries containing the processed neural activity and neuron locations
+    names : list 
+        Names of mice
+    region_colors : list
+        List of colors assigned to brain regions
+    n_plots : int
+        Number of plots for each mouse/row
+    plot_width : float
+        Width of indidividual plots
+    plot_height : float
+        Height of individual plots
+    path : str
+        Path to where the figure is saved
+
+    """
+
+    # load saved UMAP embeddings
     embed_dict = loadmat(f"{root}/Data/save/umap_embeddings.mat")
     embed_dim = embed_dict["embed_dim"].item()
     n_neighbor_vals = embed_dict["n_neighbor_vals"].flatten()
+   
     reglbs = ephys_data[0]["reglbs"]
     i_emb = 0
     
-
+    # initialize and adjust axes
     nrows, ncols = len(names), n_plots
-    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*plot_size, nrows*plot_size))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*plot_width, nrows*plot_height))
     fig.subplots_adjust(wspace=0.1, hspace=0.15)
 
+    # main
     for irow, row, ephys, name in zip(list(range(len(names))), axs, ephys_data, names):
         regIDs = ephys["regIDs"]
         cols = [region_colors[rid-1] for rid in regIDs]
@@ -92,5 +143,6 @@ def plot_umap_vs_nneighbors(
         framealpha=0
     )
 
-    if save_plot:
-        plt.savefig(f"{root}/Plots/umap_vs_nn.png", bbox_inches="tight")
+    if path == '':
+        path = f"{root}/Plots/umap_vs_nn.png"
+    plt.savefig(path, bbox_inches="tight")

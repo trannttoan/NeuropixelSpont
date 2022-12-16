@@ -291,6 +291,7 @@ def plot_time_wrt_behavior(
         loc="lower center",
         bbox_to_anchor=(0.52, 0.1)
     )
+
         
     if save_plot:
         plt.savefig(f"{root}/Plots/beh_percent.png", bbox_inches="tight", transparent=True)

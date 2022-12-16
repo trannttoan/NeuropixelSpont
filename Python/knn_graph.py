@@ -12,38 +12,94 @@ from dependencies import root
 
 
 def sort_by_distance(D):
+    """
+
+
+    Parameters
+    ----------
+    D : array-like of shape (n_neurons, n_neurons)
+        Distance matrix
+
+    Returns
+    -------
+    sort_idc : array-like of shape (n_neurons, n_neurons)
+        Matrix in which the ith row is an array of indices
+        that sort neurons other than neuron i from closest to farthest
+        based on the distance between the neural time series.
+
+    """
+
     seq_ids = np.arange(D.shape[0])
     np.fill_diagonal(D, D.max()+1)
-    sort_ids = np.array([seq_ids[np.argsort(row)] for row in D])
+    sort_idc = np.array([seq_ids[np.argsort(row)] for row in D])
     
-    return sort_ids
+    return sort_idc
         
-def create_knn_graph(sort_ids=None, D=None, n_neighbors=10):
-    if sort_ids is None and not D is None:
-        sort_ids = sort_by_distance(D)        
-    if not sort_ids is None:
-        if n_neighbors < sort_ids.shape[0]:
-            adj_mat = np.zeros(sort_ids.shape)
-            for row_ids, row_adj in zip(sort_ids, adj_mat):
-                row_adj[row_ids[:n_neighbors]] = 1
-        else:
-            adj_mat = np.ones(D.shape)
+def create_knn_graph(
+    sort_idc,
+    n_neighbors=10
+):
+    """
+
+
+    Parameters
+    ----------
+    sort_idc : array-like of shape (n_neurons, n_neurons)
+        Matrix in which the ith row is an array of indices
+        that sort neurons other than neuron i from closest to farthest
+        based on the distance between the neural time series.
+        
+    n_neighbors : int
+        Number of nearest neighbors
+
+    Returns
+    -------
+    adj_mat : array-like of shape (n_neurons, n_neurons)
+        Adjacency matrix representing the undirected, unweighted knn graph
+    """
+
+    if n_neighbors < sort_idc.shape[0]-1:
+        adj_mat = np.zeros(sort_idc.shape)
+        for row_ids, row_adj in zip(sort_idc, adj_mat):
+            row_adj[row_ids[:n_neighbors]] = 1
+    else:
+        adj_mat = np.ones(sort_idc.shape)
+        np.fill_diagonal(adj_mat, 0)
     
     return adj_mat
 
 def save_nearest_neighbors(
     ephys_data,
     behav_data,
-    names
+    names,
+    path
 ):
+    """
+
+
+    Parameters
+    ----------
+    ephys_data : list
+        Dictionaries containing the processed neural activity and neuron locations
+    behav_data : list 
+        Dictionaries containing the behavioral variables extracted from videos
+    names : list 
+        Names of mice
+    path : str
+        Path to where the results are saved
+
+    """
+
     dat = dict()
     for imouse in range(len(names)):
         spkmat = ephys_data[imouse]["spkmat"]
         T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
         sort_ids = [sort_by_distance(squareform(pdist(spkmat[:, T], metric="correlation"))) for T in [T_neither, T_whisk_only, T_both]]
         dat[names[imouse]] = sort_ids
-        
-    savemat(f"{root}/Data/save/nearest_neighbors_sort_indices.mat", dat)
+    
+    if path == '':
+        path = f"{root}/Data/save/nearest_neighbors_sort_indices.mat"
+    savemat(path, dat)
 
 
 def plot_modularity_vs_knn(
@@ -53,22 +109,50 @@ def plot_modularity_vs_knn(
     nn_vals,
     plot_width=4,
     plot_height=5,
-    save_plot=False
+    path=''
 ):
+    """
+
+
+    Parameters
+    ----------
+    ephys_data : list
+        Dictionaries containing the processed neural activity and neuron locations
+    behav_data : list 
+        Dictionaries containing the behavioral variables extracted from videos
+    names : list 
+        Names of mice
+    nn_vals : list
+        List of values of number of nearest neighbors
+    plot_width : float
+        Width of indidividual plots
+    plot_height : float
+        Height of individual plots
+    path : str
+        Path to where the figure is saved
+
+    """
     
+    # load saved nearest-neighbor indices 
     nn_ids_dict = loadmat(f"{root}/Data/save/nearest_neighbors_sort_indices.mat")
+    
+    # plotting variables (e.g. ticks, axis limits, colormaps, ...)
     beh_lbs = ["Neither", "Whisking Only", "Both"]
     colors = [behav_colors[0], behav_colors[1], behav_colors[3]]
     ytks = np.round(np.arange(0, 0.61, 0.2), 1)
 
+    # initialize and adjust axes
     n_mice = len(names)
     fig, axs = plt.subplots(1, n_mice, figsize=(n_mice*plot_width, plot_height))
     fig.subplots_adjust(wspace=0.1)
     
+    # main
     for imouse, name, ax, ephys in zip(range(n_mice), names, axs, ephys_data):
         regIDs = ephys["regIDs"]
-        communities = [set(np.argwhere(regIDs==rid).flatten()) for rid in np.unique(regIDs)]
         nn_ids_imouse = nn_ids_dict[name]
+        
+        # partitions of graph nodes
+        communities = [set(np.argwhere(regIDs==rid).flatten()) for rid in np.unique(regIDs)]
 
         for nn_ids, clr, lb in zip(nn_ids_imouse, colors, beh_lbs):
             modularities = [modularity(nx.from_numpy_array(create_knn_graph(sort_ids=nn_ids, n_neighbors=nn)), communities) for nn in nn_vals]
@@ -87,26 +171,11 @@ def plot_modularity_vs_knn(
         framealpha=0
     )
             
-    if save_plot:
-        plt.savefig(f"{root}/Plots/modularity.png", bbox_inches="tight", transparent=True)
+    if path == '':
+        path = f"{root}/Plots/modularity.png"
+
+    plt.savefig(path, bbox_inches="tight", transparent=True)
 
 
-def compute_mean_correlations(
-    ephys_data,
-    behav_data,
-    names,
-    save_plot=False
-):
 
-    for imouse in range(len(names)):
-        spkmat = ephys_data[imouse]["spkmat"]
-        regIDs = ephys_data[imouse]["regIDs"][:, np.newaxis]
-        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
-        
-        print(names[imouse].upper())
-        diff_region = squareform((regIDs - regIDs.T) > 0)
-        print(diff_region.dtype)
-        for T in [T_neither, T_whisk_only, T_both]:
-            cormat = 1 - pdist(spkmat[:, T], metric="correlation")
-            print(f"Intra:{cormat[diff_region].mean():.4f}, Inter:{cormat[1-diff_region].mean():.4f}")
 
