@@ -19,11 +19,12 @@ def plot_hclust_vs_behavior(
     behav_data,
     names,
     region_colors,
-    mouseID=0,
+    mouseID,
     path=''
 ):
     """
-
+    Perform correlation-distance-based hierarchical clustering on each of the behavior-based partition of population activity 
+    and plot distance matrices sorted based on the resulting dendrograms
 
     Parameters
     ----------
@@ -34,10 +35,10 @@ def plot_hclust_vs_behavior(
     names : list 
         Names of mice
     mouseID : int
-        Index number of a mouse
+        Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    path : str
+    path : str, default=''
         Path to where the figure is saved
     """
 
@@ -179,7 +180,8 @@ def plot_cophenetic_vs_behavior(
 ):
 
     """
-
+    Perform correlation-distance-based hierarchical clustering on each of the behavior-based partition of population activity
+    and plot the cophenetic coefficients of the resulting dendrograms
 
     Parameters
     ----------
@@ -193,11 +195,11 @@ def plot_cophenetic_vs_behavior(
         Linkage methods (strings)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    plot_width : float
+    plot_width : float, default=4
         Width of indidividual plots
-    plot_height : float
+    plot_height : float, default=5
         Height of individual plots
-    path : str
+    path : str, default=''
         Path to where the figure is saved
     """
     
@@ -249,9 +251,6 @@ def plot_cophenetic_vs_behavior(
 
 
 
-
-
-
 def compute_silhouette_vs_behavior(
     ephys_data,
     behav_data,
@@ -259,7 +258,9 @@ def compute_silhouette_vs_behavior(
     path=''
 ):
     """
-
+    Compute Silhouette coefficients based on brain region labels
+    and correlation distance between neural time series
+    for each behavioral state
 
     Parameters
     ----------
@@ -269,7 +270,7 @@ def compute_silhouette_vs_behavior(
         Dictionaries containing the behavioral variables extracted from videos
     names : list 
         Names of mice
-    path : str
+    path : str, default=''
         Path to where the results are saved
 
     """
@@ -301,8 +302,8 @@ def _plot_sil_samples(
     lims=(0.2, -0.2)
 ):
     """
-    (Helper function) Draw a Silhouette plot based on the brain region labels
-    and correlation distance between neural time series
+    (Helper function) Draw a Silhouette plot from the coefficients computed
+    by the compute_silhouette_vs_behavior function
 
     Parameters
     ----------
@@ -388,10 +389,12 @@ def plot_silhouette_vs_behavior(
     names,
     mouseID,
     region_colors,
-    path
+    path=''
 ):
     """
-
+    Create Silhouette plots for the behavior-based partitions of population activity
+    (Silhouette coefficients are computed based on brain region labels
+    and correaltion distance between segmented neural time series)
 
     Parameters
     ----------
@@ -402,10 +405,10 @@ def plot_silhouette_vs_behavior(
     names : list 
         Names of mice
     mouseID : int
-        Index number of a mouse
+        Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    path : str
+    path : str, default=''
         Path to where the figure is saved
 
     """
@@ -482,73 +485,7 @@ def plot_silhouette_vs_behavior(
     plt.savefig(path, bbox_inches="tight", transparent=True)
 
 
-def plot_silhouette_vs_nneighbors(
-    ephys_data,
-    names,
-    mice_colors
-):
-    """
-
-
-    Parameters
-    ----------
-    ephys_data : list
-        Dictionaries containing the processed neural activity and neuron locations
-    names : list 
-        Names of mice
-    mice_colors : list
-        List of colors assigned to mice
-    path : str
-        Path to where the figure is saved
-
-    """
-
-    # load saved UMAP embeddings
-    embed_dict = loadmat(f"{root}/Data/save/umap_embeddings.mat")
-    embed_dim = embed_dict["embed_dim"].item()
-    n_neighbor_vals = embed_dict["n_neighbor_vals"].flatten()
-
-    # initialize axes
-    fig, ax = plt.subplots(figsize=(15, 5))
-
-    # main
-    for name, ephys, color in zip(names, ephys_data, mice_colors):
-        regIDs = ephys["regIDs"]
-        embed_imouse = embed_dict[name]
-        
-        # calculate the standard deviation of Silhouette coefficients
-        # across UMAP embeddings for each neuron then
-        # the mean of those standard deviations 
-        sil_mean_stds = np.zeros(n_neighbor_vals.size)
-        for inn, embed_nn in enumerate(embed_imouse):
-            sil_samples = np.array([
-                silhouette_samples(
-                    X=embed_nn[:, i*embed_dim:(i+1)*embed_dim],
-                    labels=regIDs,
-                    metric="euclidean"
-                    )
-                for i in range(n_neighbor_vals.size)])
-
-            sil_mean_stds[inn] = sil_samples.std(axis=0).mean()
-
-        ax.plot(n_neighbor_vals, sil_mean_stds, color=color, label=name)
-
-    ax.set_ylim((0, 0.15))
-    ax.set_yticks(np.arange(0, 0.16, 0.05))
-    ax.set_ylabel(r"$E[\sigma_{s(i)}]$")
-    ax.set_xlabel("Number of nearest neighbors")
-    ax.legend(
-        loc="upper right",
-        prop=dict(size=15),
-        framealpha=0
-    )
-
-    if path == '':
-        path = f"{root}/Plots/silhouette_vs_nn.png"
-    plt.savefig(path, bbox_inches="tight", transparent=True)
-    
-
-def silhouette_kstest(
+def plot_silhouette_kstest(
     ephys_data,
     behav_data,
     names,
@@ -556,10 +493,12 @@ def silhouette_kstest(
     behav_indices=[[0, 1], [0, 2]],
     plot_width=4,
     plot_height=5,
+    path=''
 
 ):
     """
-
+    Perform kolmogorov-smirnov test on pairs of Silhouette samples
+    and plot the ECDFs along with the resulting KS statistics
 
     Parameters
     ----------
@@ -574,11 +513,11 @@ def silhouette_kstest(
     behavior_indices : list
         Pairs of indices
         (0-Neither, 1-Whisking Only, 2-Running Only, 3-Both)
-    plot_width : float
+    plot_width : float, default=4
         Width of indidividual plots
-    plot_height : float
+    plot_height : float, default=5
         Height of individual plots
-    path : str
+    path : str, default=''
         Path to where the figure is saved
 
     """

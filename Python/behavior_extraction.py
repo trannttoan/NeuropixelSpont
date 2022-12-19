@@ -15,7 +15,7 @@ def label_tpoints(
     adjust=True
 ):
     """
-    Aligns behavioral labels to neural recording time and creates a mask for each behavioral state. 
+    Align behavioral event indicators with neural recording time and create a mask for each behavioral state. 
 
     Parameters
     ----------
@@ -24,8 +24,8 @@ def label_tpoints(
     behav_data : list
         Dictionaries containing the behavioral variables extracted from videos
     mouseID : int
-        Index number of a mouse.
-    adjust: bool
+        Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
+    adjust: bool, default=True
         "Locomotion Only" is subsumed into "Both" if true.
 
     Returns
@@ -67,7 +67,7 @@ def label_tpoints(
 
 
 
-def plot_behav_labels(
+def plot_behavior_variables(
     behav_data,
     mouseID,
     behav_colors,
@@ -77,7 +77,7 @@ def plot_behav_labels(
     path=''
 ):
     """
-
+    Plot example frames along with ROIs and corresponding behavior variables
 
     Parameters
     ----------
@@ -87,13 +87,13 @@ def plot_behav_labels(
         Index number of a mouse
     behav_colors : list
         List of colors assigned to behavioral states
-    tstart : int
+    tstart : int, default=0
         Start time
-    duration : int
+    duration : int, default=50
         Length of time to display
-    interval : int
+    interval : int, interval=10
         Size of interval between ticks
-    path : str
+    path : str, default=''
         Path to where the figure is saved
     """
 
