@@ -5,7 +5,7 @@ from scipy.io import loadmat
 from scipy.interpolate import interp1d
 
 from matplotlib.gridspec import GridSpecFromSubplotSpec
-from dependencies import root
+from dependencies import data_path, figure_path
 
 
 def label_tpoints(
@@ -26,7 +26,7 @@ def label_tpoints(
     mouseID : int
         Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     adjust: bool, default=True
-        "Locomotion Only" is subsumed into "Both" if true.
+        "Running Only" is subsumed into "Both" if true
 
     Returns
     -------
@@ -73,8 +73,7 @@ def plot_behavior_variables(
     behav_colors,
     tstart=0,
     duration=50,
-    interval=10,
-    path=''
+    interval=10
 ):
     """
     Plot example frames along with ROIs and corresponding behavior variables
@@ -84,7 +83,7 @@ def plot_behavior_variables(
     behav_data : list 
         Dictionaries containing the behavioral variables extracted from videos
     mouseID : int
-        Index number of a mouse
+        Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     behav_colors : list
         List of colors assigned to behavioral states
     tstart : int, default=0
@@ -93,12 +92,10 @@ def plot_behavior_variables(
         Length of time to display
     interval : int, interval=10
         Size of interval between ticks
-    path : str, default=''
-        Path to where the figure is saved
     """
 
     # frame and ROIs
-    roi_dict = loadmat(root + "/Data/source/rois.mat")
+    roi_dict = loadmat(f"{data_path}/rois.mat")
     frame = roi_dict["frames"][mouseID, 0].astype(int)
 
     # time window to show
@@ -169,7 +166,4 @@ def plot_behavior_variables(
     ax.set_xticks(np.arange(0, duration+1, interval))
     ax.tick_params(labelsize=15)
     
-
-    if path == '':
-        path = f"{root}/Plots/behavior_{tstart}-{tstart+duration}.png"
-    plt.savefig(path, bbox_inches="tight", transparent=True)
+    plt.savefig(f"{figure_path}/behavior_{tstart}-{tstart+duration}.png", bbox_inches="tight", transparent=True)

@@ -3,110 +3,11 @@ import matplotlib.pyplot as plt
 
 from scipy.io import loadmat, savemat
 from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import average, cut_tree
-from sklearn.metrics import silhouette_samples, rand_score
+from sklearn.metrics import silhouette_samples
 from matplotlib.lines import Line2D
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 
-from helper_functions import label_tpoints
-from dependencies import root
-
-
-def compute_silhouette_vs_nclusters(
-    ephys_data,
-    behav_data,
-    names,
-    n_cluster_vals=np.arange(2, 13)
-):
-    
-    sils_dict = dict()
-    sils_dict["beh_states"] = ["Neither", "Whisking only", "Both"]
-    sils_dict["n_cluster_vals"] = n_cluster_vals
-
-    for imouse in range(3):
-        spkmat = ephys_data[imouse]["spkmat"]
-        regIDs = ephys_data[imouse]["regIDs"]
-        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
-        T_splits = [T_neither, T_whisk_only, T_both]
-        sil_samples = np.zeros((len(T_splits), n_cluster_vals.size, spkmat.shape[0]))
-
-        for ibeh, T in enumerate(T_splits):
-            D = squareform(pdist(spkmat[:, T], metric="correlation"))
-            Z = average(squareform(D))
-            sil_samples[ibeh, :, :] = np.array([silhouette_samples(D, cut_tree(Z, n_clusters=n_clusters).flatten(), metric="precomputed") for n_clusters in n_cluster_vals])
-        sils_dict[names[imouse]] = sil_samples
-
-    savemat(f"{root}/Data/save/silhouette_hclust.mat", mdict=sils_dict)
-
-
-def plot_silhouette_vs_nclusters(
-    names,
-    micecols,
-    save_plot=False
-):
-
-    sil_dict = loadmat(f"{root}/Data/save/silhouette_hclust.mat")
-    nrows, ncols = len(names), len(sil_dict["beh_states"])
-    fig, axs = plt.subplots(nrows, ncols, figsize=(15, 9))
-
-    for imouse, row in enumerate(axs):
-        sil_samples = sil_dict[names[imouse]]
-        for ax, sils in zip(row, sil_samples):
-            ax.errorbar(np.arange(2, 13), sils.mean(axis=1), yerr=sils.std(axis=1))
-            ax.set_xticks(np.arange(2, 13, 2))
-            # ax.set_ylim((-0.06, 0.045))
-
-    if save_plot:
-        plt.savefig(f"{root}/Plots/silhouette_hclust.png", bbox_inches="tight")
-
-
-
-def compute_ari_vs_behavior(
-    ephys_data,
-    behav_data,
-    names,
-    n_cluster_vals=np.arange(2, 13)
-):
-    
-    rand_dict = dict()
-    rand_dict["beh_states"] = ["Neither", "Whisking only", "Both"]
-    rand_dict["n_cluster_vals"] = n_cluster_vals
-
-    for imouse in range(3):
-        spkmat = ephys_data[imouse]["spkmat"]
-        regIDs = ephys_data[imouse]["regIDs"]
-        T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
-        T_splits = [T_neither, T_whisk_only, T_both]
-        rand_scores = np.zeros((len(T_splits), n_cluster_vals.size))
-
-        for ibeh, T in enumerate(T_splits):
-            D = squareform(pdist(spkmat[:, T], metric="correlation"))
-            Z = average(squareform(D))
-            rand_scores[ibeh, :] = np.array([rand_score(regIDs, cut_tree(Z, n_clusters=n_clusters).flatten()) for n_clusters in n_cluster_vals])
-        rand_dict[names[imouse]] = rand_scores
-
-    savemat(f"{root}/Data/save/rand_index.mat", mdict=rand_dict)
-
-
-def plot_ari_vs_behavior(
-    names,
-    save_plot=False
-):
-
-    rand_dict = loadmat(f"{root}/Data/save/rand_index.mat")
-    n_cluster_vals = rand_dict["n_cluster_vals"].flatten()
-    nrows, ncols = len(names), len(rand_dict["beh_states"])
-    fig, axs = plt.subplots(nrows, ncols, figsize=(15, 9))
-
-    for imouse, row in enumerate(axs):
-        rand_scores = rand_dict[names[imouse]]
-        for ax, rands in zip(row, rand_scores):
-            ax.plot(n_cluster_vals, rands)
-            ax.set_xticks(np.arange(2, 13, 2))
-            ax.set_ylim((0, 0.65))
-
-    if save_plot:
-        plt.savefig(f"{root}/Plots/rand_index.png", bbox_inches="tight")
+from dependencies import data_path, figure_path
 
 
 def plot_silhouette_by_region(
@@ -114,10 +15,11 @@ def plot_silhouette_by_region(
     names,
     mice_colors,
     behavior_indices=[[0, 2], [1, 2]],
-    standard_error=False,
-    path=''
+    standard_error=False
 ):
     """
+    Plot mean and standard deviation/standard error of the mean
+    of Silhouette coefficients for each brain region
 
 
     Parameters
@@ -133,12 +35,10 @@ def plot_silhouette_by_region(
         (0-Neither, 1-Whisking Only, 2-Running Only, 3-Both)
     standard_error : bool
         If true, plot standard error of the mean instead of standard deviation
-    path : str
-        Path to where figure is saved
     """
     
     n_mice = len(names)
-    silhouette_all_mice = loadmat(f"{root}/Data/save/silhouette.mat")
+    silhouette_all_mice = loadmat(f"{data_path}/silhouette.mat")
     
     reglbs = ephys_data[0]["reglbs"]
     n_regs = len(reglbs)
@@ -199,10 +99,7 @@ def plot_silhouette_by_region(
                 ax.set_yticklabels(ytks if j==0 and k==0 else [])
                 ax.tick_params(axis='both', direction="in")
 
-
-    if path:
-        path = f"{root}/Plots/silhouette_by_region.png"
-    plt.savefig(path, bbox_inches="tight")
+    plt.savefig(f"{figure_path}/silhouette_by_region.png", bbox_inches="tight", transparent=True)
 
 
 
@@ -211,11 +108,11 @@ def plot_silhouette_by_mouse(
     names,
     regcols=None,
     standard_error=False,
-    behavior_indices=[[0, 2], [1, 2]],
-    save_plot=True
+    behavior_indices=[[0, 2], [1, 2]]
 ):
     """
-
+    Plot mean and standard deviation/standard error of the mean
+    of Silhouette coefficients for each mice
 
     Parameters
     ----------
@@ -229,16 +126,13 @@ def plot_silhouette_by_mouse(
         Index number of a mouse
     region_colors : list
         List of colors assigned to brain regions for plotting
-    path : str
-        Path to where figure is saved
-
     """
 
     fig, axs = plt.subplots(3, 2, figsize=(8, 8))
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
     
     n_mice = len(names)
-    silhouette_all_mice = loadmat(f"{root}/Data/save/silhouette.mat")
+    silhouette_all_mice = loadmat(f"{data_path}/silhouette.mat")
     
     reglbs = ephys_data[0]["reglbs"]
     n_regs = len(reglbs)
@@ -319,5 +213,4 @@ def plot_silhouette_by_mouse(
         bbox_to_anchor=(0.55, .92)
     )
 
-    if save_plot:
-        plt.savefig(f"{root}/Plots/silhouette_by_mouse.png", bbox_inches="tight")
+    plt.savefig(f"{figure_path}/silhouette_by_mouse.png", bbox_inches="tight", transparent=True)

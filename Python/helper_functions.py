@@ -2,10 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.io import loadmat
-from dependencies import root
+from dependencies import data_path
 
 
 def plot_config():
+    """
+    Set default parameters for matplotlib
+    """
     plt.style.use("seaborn-paper")
     plt.rcParams.update({
         "axes.labelsize": 16,
@@ -19,6 +22,18 @@ def plot_config():
     })
 
 def generate_colors():
+    """
+    Generate colors for mice, behavioral states and brain regions to be used across all plots
+
+    Returns
+    -------
+    micecols : list
+        List of colors assigned to mice for plotting
+    regcols : list
+        List of colors assigned to brain regions for plotting
+    behcols : list
+        List of colors assigned to behavioral states for plotting
+    """
     kelly_colors = dict(vivid_yellow=(255, 179, 0),
                     strong_purple=(128, 62, 117),
                     vivid_orange=(255, 104, 0),
@@ -62,20 +77,38 @@ def generate_colors():
     return micecols, regcols, behcols
 
 def load_data(names=["Krebs", "Waksman", "Robbins"]):
+    """
+    Load processed data into dictionaries for easy access
+
+    Parameters
+    ----------
+    names : list
+        List of mice names
+
+    Returns
+    -------
+    ephys : list
+        List of dictionaries, each containing the processed neural activity and neuron locations of a mouse
+    behav : list
+        List of dictionaries, each containing the behavioral variables extracted from the video recording of a mouse
+    names : list
+        List of names of mice
+    """
+
     ephys = []
     behav = []
 
     for i in range(len(names)): 
-        # spike times
-        st = loadmat(f"{root}/Data/source/ephys_{names[i]}.mat")
+        # neural data
+        st = loadmat(f"{data_path}/ephys_{names[i]}.mat")
         st["reglbs"] = list(map(np.ndarray.item, st["reglbs"].flatten()))
         stkeys = ["regIDs", "probeIDs", "heights", "tpoints"]
         for k in stkeys:
             st[k] = st[k].flatten()
         ephys.append(st)
 
-        # video/behavioral data
-        beh = loadmat(f"{root}/Data/source/behav_{names[i]}.mat")
+        # behavior variables
+        beh = loadmat(f"{data_path}/behav_{names[i]}.mat")
         behkeys = ["frame_diff", "lomot_cont", "whisk_cont", "lomot_disc", "whisk_disc", "time_pts"]
         for k in behkeys:
             beh[k] = beh[k].flatten()

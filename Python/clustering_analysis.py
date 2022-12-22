@@ -11,7 +11,7 @@ from matplotlib.gridspec import GridSpecFromSubplotSpec
 from matplotlib.lines import Line2D
 
 from behavior_extraction import label_tpoints
-from dependencies import root
+from dependencies import data_path, figure_path
 
 
 def plot_hclust_vs_behavior(
@@ -19,8 +19,7 @@ def plot_hclust_vs_behavior(
     behav_data,
     names,
     region_colors,
-    mouseID,
-    path=''
+    mouseID
 ):
     """
     Perform correlation-distance-based hierarchical clustering on each of the behavior-based partition of population activity 
@@ -38,12 +37,10 @@ def plot_hclust_vs_behavior(
         Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    path : str, default=''
-        Path to where the figure is saved
     """
 
     # load saved pairwise mutual information between neural time series
-    f = h5py.File(f"{root}/Data/save/pairwise_minfo.mat")
+    f = h5py.File(f"{data_path}/pairwise_minfo.mat")
     minfos_all = {k:np.array(v) for k, v in f.items()}
     minfos = minfos_all[names[mouseID]]
 
@@ -147,7 +144,7 @@ def plot_hclust_vs_behavior(
         color='w',
         markeredgecolor='w',
         label=lb
-    ) for cl, lb in range(region_colors, reglbs)]
+    ) for cl, lb in zip(region_colors, reglbs)]
         
     axs[-1, -1].legend(
         handles=h,
@@ -162,9 +159,7 @@ def plot_hclust_vs_behavior(
     
     # fig.text(0, 0.5, names[mouseID], fontsize=18, ha="center")
     
-    if path == '':
-        path = f"{root}/Plots/hclust_wrt_behaviors_{names[mouseID]}.png"
-    plt.savefig(path, dpi=600, bbox_inches="tight", transparent=True)
+    plt.savefig(f"{figure_path}/hclust_wrt_behaviors_{names[mouseID]}.png", dpi=600, bbox_inches="tight", transparent=True)
 
         
 
@@ -174,9 +169,7 @@ def plot_cophenetic_vs_behavior(
     behav_data,
     names,
     linkages=["single", "complete", "average"],
-    plot_width=4,
-    plot_height=5,
-    path=''
+    plot_size=(4, 5)
 ):
 
     """
@@ -195,16 +188,13 @@ def plot_cophenetic_vs_behavior(
         Linkage methods (strings)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    plot_width : float, default=4
-        Width of indidividual plots
-    plot_height : float, default=5
-        Height of individual plots
-    path : str, default=''
-        Path to where the figure is saved
+    plot_size : float, default=(4, 5)
+        Width and height of indidividual plots
     """
     
     # intialize and ajust axes
-    fig, axs = plt.subplots(1, len(names), figsize=(len(names)*plot_width, plot_height))
+    width, height = plot_size
+    fig, axs = plt.subplots(1, len(names), figsize=(len(names)*width, height))
     
     # plotting variables (e.g. ticks, axis limits, colormaps, ...)
     beh_lbs = ["Neither", "Whisking Only", "Both"]
@@ -244,18 +234,15 @@ def plot_cophenetic_vs_behavior(
         loc="lower left"
     )
 
-    if path == '':
-        path = f"{root}/Plots/cophenetic_vs_behavior.png"
 
-    plt.savefig(path, bbox_inches="tight", transparent=True)
+    plt.savefig(f"{figure_path}/cophenetic_vs_behavior.png", bbox_inches="tight", transparent=True)
 
 
 
 def compute_silhouette_vs_behavior(
     ephys_data,
     behav_data,
-    names,
-    path=''
+    names
 ):
     """
     Compute Silhouette coefficients based on brain region labels
@@ -270,8 +257,6 @@ def compute_silhouette_vs_behavior(
         Dictionaries containing the behavioral variables extracted from videos
     names : list 
         Names of mice
-    path : str, default=''
-        Path to where the results are saved
 
     """
 
@@ -283,10 +268,8 @@ def compute_silhouette_vs_behavior(
         T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=imouse)
         masks = [T_neither, T_whisk_only, T_both]
         sil_dict[names[imouse]] = [silhouette_samples(squareform(pdist(spkmat[:, T], metric="correlation")), regIDs, metric="precomputed") for T in masks]
-        
-    if path == '':
-        path = f"{root}/Data/save/silhouette.mat"
-    savemat(path, sil_dict)
+
+    savemat(f"{data_path}/silhouette.mat", sil_dict)
 
 
 def _plot_sil_samples(
@@ -388,8 +371,7 @@ def plot_silhouette_vs_behavior(
     behav_data,
     names,
     mouseID,
-    region_colors,
-    path=''
+    region_colors
 ):
     """
     Create Silhouette plots for the behavior-based partitions of population activity
@@ -408,8 +390,6 @@ def plot_silhouette_vs_behavior(
         Index number of a mouse (0-Krebs, 1-Waksman, 2-Robbins)
     region_colors : list
         List of colors assigned to brain regions for plotting
-    path : str, default=''
-        Path to where the figure is saved
 
     """
 
@@ -421,12 +401,12 @@ def plot_silhouette_vs_behavior(
     n_regs = len(reglbs)
 
     # generate masks to extract neural activity based on behavioral state
-    T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(behav_data, mouseID=mouseID)
+    T_neither, T_whisk_only, T_lomot_only, T_both = label_tpoints(ephys_data, behav_data, mouseID=mouseID)
     masks = [T_neither, T_whisk_only, T_both]
     n_splits = len(masks)
     
     # load saved Silhouette coefficients
-    silhouette_all_mice = loadmat(f"{root}/Data/save/silhouette.mat")
+    silhouette_all_mice = loadmat(f"{data_path}/silhouette.mat")
     beh_labels = ["Neither", "Whisking Only", "Both"] #silhouette_all_mice["beh_states"]
     silhouette_all_behs = silhouette_all_mice[names[mouseID]]
     
@@ -447,7 +427,7 @@ def plot_silhouette_vs_behavior(
             ax=ax,
             title=beh_labels[isplit],
             colors=region_colors,
-            sort_idx=sort_indices
+            sort_idc=sort_indices
         )
         
     # mean and standard deviation of Silhouette coefficient for each brain region 
@@ -478,11 +458,9 @@ def plot_silhouette_vs_behavior(
             ax.tick_params(axis='both', direction="in")
             
     fig.text(0.67, 0.5, "Silhouette", fontsize=18, ha="center", rotation=90)
-    fig.text(0.08, 0.5, names[mouseID], fontsize=20, ha="center")
+    # fig.text(0.08, 0.5, names[mouseID], fontsize=20, ha="center")
     
-    if path == '':
-        path = f"{root}/Plots/silhouette_{names[mouseID]}.png"
-    plt.savefig(path, bbox_inches="tight", transparent=True)
+    plt.savefig(f"{figure_path}/silhouette_{names[mouseID]}.png", bbox_inches="tight", transparent=True)
 
 
 def plot_silhouette_kstest(
@@ -491,10 +469,7 @@ def plot_silhouette_kstest(
     names,
     behav_colors,
     behav_indices=[[0, 1], [0, 2]],
-    plot_width=4,
-    plot_height=5,
-    path=''
-
+    plot_size=(4, 5)
 ):
     """
     Perform kolmogorov-smirnov test on pairs of Silhouette samples
@@ -513,18 +488,15 @@ def plot_silhouette_kstest(
     behavior_indices : list
         Pairs of indices
         (0-Neither, 1-Whisking Only, 2-Running Only, 3-Both)
-    plot_width : float, default=4
-        Width of indidividual plots
-    plot_height : float, default=5
-        Height of individual plots
-    path : str, default=''
-        Path to where the figure is saved
+    plot_size : float, default=(4, 5)
+        Width and height of indidividual plots
 
     """
 
     # initialize and adjust axes
     nrows, ncols = len(names), len(behav_indices)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*plot_width, nrows*plot_height))
+    width, height = plot_size
+    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*width, nrows*height))
     fig.subplots_adjust(wspace=0.1, hspace=0.2)
 
     # plotting variables (e.g. ticks, axis limits, colormaps, ...)
@@ -577,7 +549,4 @@ def plot_silhouette_kstest(
     for y, name in zip(text_ys, names):
         fig.text(0.98, y, name, fontdict=dict(ha="center"), fontsize=17)
 
-                
-    if path:
-        path = f"{root}/Plots/silhouette_kstest.png"
-    plt.savefig(path, bbox_inches="tight", transparent=True)
+    plt.savefig(f"{figure_path}/silhouette_kstest.png", bbox_inches="tight", transparent=True)
