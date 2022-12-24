@@ -4,7 +4,7 @@ Analyses of multi-brain Neuropixels recordings of mice during spontaneous behavi
 All results were obtained using the publicly available [dataset](https://janelia.figshare.com/articles/dataset/Eight-probe_Neuropixels_recordings_during_spontaneous_behaviors/7739750) consisting of raw eloctrophysical recordings and video footages of three mice moving in the dark. To reproduce the figures, follow these steps:
 1. Download the preprocessed data from [here](https://drive.google.com/drive/folders/1f75fpMnQdRJF6JPe0hYDVkou8hYJaR-4?usp=share_link).
 2. Clone this repository.
-3. In the local Python folder, modify `dependencies.py` so that the variables `data_path` and `figure_path` that contain respective paths to the preprocessed data (step 1) and a folder to hold all the figures.
+3. In the local Python folder, modify `dependencies.py` so that the variables `data_path` and `figure_path` contain respective paths to the preprocessed data (step 1) and a folder to hold all the figures.
 4. Run `produce_all_plots.py` to produce all the figures. Details about the code are provided below.
 
 `load_data` reads the processed data from the `.mat` files and package them into Python dictionaries for easy access. Specifically, `ephys_data` is a list of dictionaries containing the following information:
